@@ -1,18 +1,28 @@
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.UI;
 
+[RequireComponent(typeof(Button))]
 public class AudioMixerController : MonoBehaviour
 {
-    [SerializeField] private AudioMixer _audioMixer;
-
-    private readonly float _minVolume = -80f;
-
+    [SerializeField] private AudioMixerGroup _mixerGroup;
+    
+    private Button _button;
     private float _currentVolume;
 
     private void Awake()
-        => _audioMixer.GetFloat(ExposedParameterNames.MasterVolume, out _currentVolume);
+    {
+        _button = GetComponent<Button>();
+        _mixerGroup.audioMixer.GetFloat(_mixerGroup.name, out _currentVolume);
+    }
 
-    public void SwapVolumeState()
+    private void OnEnable()
+        => _button.onClick.AddListener(SwapVolumeState);
+
+    private void OnDisable()
+        => _button.onClick.RemoveListener(SwapVolumeState);
+
+    private void SwapVolumeState()
     {
         if (IsTurnedOn())
         {
@@ -23,33 +33,17 @@ public class AudioMixerController : MonoBehaviour
         TurnOn();
     }
 
-    public void SetMasterVolume(float volume)
-        => SetVolume(volume, ExposedParameterNames.MasterVolume);
-
-    public void SetButtonsVolume(float volume)
-        => SetVolume(volume, ExposedParameterNames.ButtonsVolume);
-
-    public void SetBackgroundVolume(float volume)
-        => SetVolume(volume, ExposedParameterNames.BackgroundVolume);
-
-    private void SetVolume(float value, string name)
-    {
-        _currentVolume = Mathf.Log10(value) * 20;
-
-        _audioMixer.SetFloat(name, _currentVolume);
-    }
-
     private bool IsTurnedOn()
     {
-        if (_audioMixer.GetFloat(ExposedParameterNames.MasterVolume, out float volume))
-            return volume > _minVolume;
+        if (_mixerGroup.audioMixer.GetFloat(_mixerGroup.name, out float volume))
+            return volume > AudioMixerCharacteristics.MinVolume;
 
         return false;
     }
 
     private void TurnOff()
-        => _audioMixer.SetFloat(ExposedParameterNames.MasterVolume, _minVolume);
+        => _mixerGroup.audioMixer.SetFloat(_mixerGroup.name, AudioMixerCharacteristics.MinVolume);
     
     private void TurnOn()
-        => _audioMixer.SetFloat(ExposedParameterNames.MasterVolume, _currentVolume);
+        => _mixerGroup.audioMixer.SetFloat(_mixerGroup.name, _currentVolume);
 }
